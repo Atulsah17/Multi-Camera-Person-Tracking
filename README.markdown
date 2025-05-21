@@ -26,7 +26,7 @@ This project implements a multi-camera person tracking system that identifies an
 ## Installation
 1. **Clone the Repository** (if applicable):
    ```bash
-   git clone <repository-url>
+   git clone <https://github.com/Atulsah17/Multi-Camera-Person-Tracking>
    cd multi-camera-person-tracking
    ```
    Alternatively, place the script (`app.py`) in your project directory.
