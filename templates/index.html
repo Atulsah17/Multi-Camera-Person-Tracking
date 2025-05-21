@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Person Tracking Across Cameras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #1a202c;
+            color: white;
+            min-height: 100vh;
+        }
+        .video-card {
+            background: #2d3748;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="p-6">
+    <h1 class="text-3xl font-bold text-center mb-6">Person Tracking Across Cameras</h1>
+    <p class="text-center text-gray-400 mb-6">Watch person transitions with global IDs (GID) across camera feeds.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for cam_idx, info in cameras.items() %}
+            <div class="video-card" data-cam-id="{{ cam_idx }}">
+                <h2 class="text-xl font-semibold text-center mb-2">Camera {{ cam_idx }} ({{ info.status | capitalize }})</h2>
+                <p class="text-center text-gray-400 mb-2">{{ info.progress }}</p>
+                {% if info.status == "completed" %}
+                    <video controls class="w-full h-64 object-cover video-player" preload="metadata">
+                        <source src="{{ url_for('static', filename=info.final_video) }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                {% elif info.chunks %}
+                    <video controls class="w-full h-64 object-cover video-player" preload="metadata">
+                        <source src="{{ url_for('static', filename=info.chunks[-1]) }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                {% else %}
+                    <div class="w-full h-64 bg-gray-700 flex items-center justify-center video-placeholder">
+                        <p class="text-gray-400">Processing...</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    <script>
+        async function updateStatus() {
+            try {
+                const response = await fetch('/status');
+                const status = await response.json();
+                console.log(`Status update at ${new Date().toLocaleTimeString()}:`, status);
+                Object.entries(status).forEach(([cam_idx, info]) => {
+                    const card = document.querySelector(`.video-card[data-cam-id="${cam_idx}"]`);
+                    if (!card) {
+                        console.error(`Card for cam ${cam_idx} not found`);
+                        return;
+                    }
+                    const title = card.querySelector('h2');
+                    const progress = card.querySelector('p');
+                    const videoContainer = card.querySelector('.video-placeholder') || card.querySelector('.video-player');
+                    title.textContent = `Camera ${cam_idx} (${info.status.charAt(0).toUpperCase() + info.status.slice(1)})`;
+                    progress.textContent = info.progress;
+
+                    if (info.status === 'completed' && !card.querySelector('.video-player')) {
+                        const videoSrc = `/static/${info.final_video}`;
+                        console.log(`Loading final video for cam ${cam_idx}: ${videoSrc}`);
+                        videoContainer.outerHTML = `<video controls class="w-full h-64 object-cover video-player" preload="metadata">
+                            <source src="${videoSrc}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>`;
+                    } else if (info.chunks.length > 0 && !card.querySelector('.video-player')) {
+                        const latestChunk = info.chunks[info.chunks.length - 1];
+                        const videoSrc = `/static/${latestChunk}`;
+                        console.log(`Loading chunk for cam ${cam_idx}: ${videoSrc}`);
+                        videoContainer.outerHTML = `<video controls class="w-full h-64 object-cover video-player" preload="metadata">
+                            <source src="${videoSrc}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>`;
+                    }
+
+                    // Force reload of video elements
+                    const video = card.querySelector('.video-player');
+                    if (video) {
+                        video.load();
+                        video.onloadeddata = () => console.log(`Video loaded for cam ${cam_idx}: ${video.querySelector('source').src}`);
+                        video.onerror = () => console.error(`Failed to load video for cam ${cam_idx}: ${video.querySelector('source').src}`);
+                    }
+                });
+            } catch (err) {
+                console.error("Status update error:", err);
+            }
+        }
+        setInterval(updateStatus, 5000);
+        updateStatus();
+    </script>
+</body>
+</html>
