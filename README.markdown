@@ -20,7 +20,7 @@ This Multi-Camera Person Tracking project uses YOLOv8 for detection, ByteTrack f
 ## Installation
 1. **Clone the Repository** (if applicable):
    ```bash
-   git clone <repository-url>
+   git clone <https://github.com/Atulsah17/Multi-Camera-Person-Tracking>
    cd multi-camera-person-tracking
    ```
    Alternatively, place the script (`multi_camera_tracking_local.py`) in your project directory.
@@ -190,4 +190,8 @@ This Multi-Camera Person Tracking project uses YOLOv8 for detection, ByteTrack f
 This project is licensed under the MIT License. See the `LICENSE` file for details (if applicable).
 
 ## Contact
+<<<<<<< HEAD
 For questions or contributions, please reach out to [your-email@example.com].
+=======
+For questions or contributions, please reach out to [atulsah9211@gmail.com].
+>>>>>>> 84a951745404ee788f9126bc44bb24f2e756ddbb
