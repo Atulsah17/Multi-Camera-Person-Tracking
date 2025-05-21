@@ -1,13 +1,12 @@
 # Multi-Camera Person Tracking
 
-This project implements a multi-camera person tracking system that identifies and tracks individuals across multiple video feeds. It uses YOLOv8 for person detection, ByteTrack for tracking within each camera, and a ResNet50-based ReID model for matching persons across cameras. The system processes videos in chunks, annotates tracked persons with global IDs, and saves the output as video files.
+This Multi-Camera Person Tracking project uses YOLOv8 for detection, ByteTrack for tracking, and ResNet50-based ReID to match individuals across video feeds. It processes videos in parallel, annotates persons with global IDs, and saves outputs as chunks and final videos, ideal for surveillance and monitoring applications.
 
 ## Features
 - **Person Detection**: Uses YOLOv8 to detect persons in each video frame.
 - **Tracking**: Employs ByteTrack for robust tracking within each camera feed.
 - **Re-Identification (ReID)**: Matches persons across cameras using a ResNet50-based ReID model.
 - **Multi-Threaded Processing**: Processes multiple camera feeds in parallel.
-- **GPU Support**: Leverages CUDA for faster processing if a compatible GPU is available.
 - **Output**: Saves processed videos with tracking annotations as chunks and final combined videos.
 
 ## Requirements
@@ -15,13 +14,8 @@ This project implements a multi-camera person tracking system that identifies an
 - **Hardware**: A CUDA-compatible GPU is recommended for faster processing (CPU fallback available).
 - **Python Version**: Python 3.8 or higher
 - **Dependencies**:
-  - `torch` (with CUDA support if using GPU)
-  - `torchvision`
-  - `ultralytics`
-  - `opencv-python-headless`
-  - `numpy`
-  - `scipy`
-  - ByteTrack (installed via GitHub repository)
+  - See `requirements.txt` for most dependencies.
+  - ByteTrack (installed manually via GitHub repository).
 
 ## Installation
 1. **Clone the Repository** (if applicable):
@@ -29,23 +23,22 @@ This project implements a multi-camera person tracking system that identifies an
    git clone <repository-url>
    cd multi-camera-person-tracking
    ```
-   Alternatively, place the script (`app.py`) in your project directory.
+   Alternatively, place the script (`multi_camera_tracking_local.py`) in your project directory.
 
 2. **Set Up a Virtual Environment** (recommended):
    ```bash
    python -m venv venv
-   source venv/bin/activate  
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install Dependencies**:
+3. **Install Dependencies from `requirements.txt`**:
    ```bash
-   pip install torch torchvision ultralytics opencv-python-headless numpy scipy
+   pip install -r requirements.txt
    ```
-   - If you have a CUDA-compatible GPU, ensure `torch` is installed with CUDA support:
+   - If you have a CUDA-compatible GPU, ensure `torch` is installed with CUDA support. The `requirements.txt` specifies `torch==2.0.1`, which may need a specific CUDA version (e.g., CUDA 11.7). Check your CUDA version and adjust if necessary:
      ```bash
-     pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+     pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cu117
      ```
-     Check your CUDA version and adjust the URL accordingly (e.g., `cu118` for CUDA 11.8).
 
 4. **Install ByteTrack**:
    ByteTrack requires manual installation from its GitHub repository:
@@ -71,16 +64,17 @@ This project implements a multi-camera person tracking system that identifies an
 
 ## Project Structure
 - `multi_camera_tracking_local.py`: Main script for processing videos and tracking persons.
+- `requirements.txt`: List of pip-installable dependencies.
 - `input_videos/`: Directory to place your input video files.
 - `output/`: Directory where processed videos and temporary chunks are saved.
   - `output/temp/camX/`: Temporary chunks for each camera (e.g., `chunk_0.mp4`).
   - `output/output_camX.mp4`: Final processed video for each camera.
 
-## Usage
+## How to Run the Code
 1. **Prepare Input Videos**:
    - Place your input videos in the `input_videos/` directory.
    - Name the videos as `cam1.mp4`, `cam2.mp4`, ..., `cam5.mp4` (for 5 cameras).
-   - Example:
+   - Example directory structure:
      ```
      input_videos/
      ├── cam1.mp4
@@ -91,7 +85,8 @@ This project implements a multi-camera person tracking system that identifies an
      ```
 
 2. **Update Video Paths** (if needed):
-   - Open `multi_camera_tracking_local.py` and modify the `video_list` to match your video paths:
+   - Open `multi_camera_tracking_local.py` in a text editor.
+   - Modify the `video_list` variable to match the paths to your input videos:
      ```python
      video_list = [
          "input_videos/cam1.mp4",
@@ -103,17 +98,15 @@ This project implements a multi-camera person tracking system that identifies an
      ```
 
 3. **Run the Script**:
-   ```bash
-   python multi_camera_tracking_local.py
-   ```
-   - The script will:
-     - Detect and track persons in each video.
-     - Assign global IDs to match persons across cameras.
-     - Save video chunks every 60 frames to `output/temp/camX/`.
-     - Combine chunks into final videos at `output/output_camX.mp4`.
-
-4. **Monitor Progress**:
-   - The script prints progress updates, such as frame counts and FPS for each camera.
+   - Ensure your virtual environment is activated:
+     ```bash
+     source venv/bin/activate  # On Windows: venv\Scripts\activate
+     ```
+   - Execute the script:
+     ```bash
+     python multi_camera_tracking_local.py
+     ```
+   - The script will process each video in parallel, printing progress updates like frame counts and FPS for each camera.
    - Example output:
      ```
      Using device: cuda
@@ -124,6 +117,29 @@ This project implements a multi-camera person tracking system that identifies an
      Creating chunk: output/temp/cam1/chunk_0.mp4 at 19:45:00
      Processed input_videos/cam1.mp4, Avg FPS: 30.00
      ```
+
+## Method Explanation
+### Detection
+- **Model**: Uses YOLOv8 (medium variant, `yolov8m.pt`) for person detection.
+- **Process**: Each video frame is processed to detect persons (class ID 0) with a confidence threshold of 0.7.
+- **Output**: Bounding boxes and confidence scores for detected persons in each frame.
+
+### Tracking
+- **Model**: Employs ByteTrack for tracking persons within each camera feed.
+- **Process**: 
+  - Takes YOLOv8 detections as input.
+  - Tracks persons across frames using a combination of Kalman filtering and appearance features.
+  - Assigns local track IDs to persons within each video.
+- **Configuration**: Uses a tracking threshold of 0.4, match threshold of 0.7, and a buffer of 60 frames to handle occlusions.
+
+### Re-Identification (ReID)
+- **Model**: Uses a ResNet50-based ReID model (pre-trained on ImageNet) for appearance feature extraction.
+- **Process**:
+  - Crops detected persons from frames and resizes them to 256x128 pixels.
+  - Extracts feature embeddings using ResNet50 with an adaptive average pooling layer.
+  - Normalizes features and computes cosine similarity to match persons across cameras.
+  - Assigns global IDs to persons by comparing features against a database of known identities.
+- **Thresholds**: Uses a similarity threshold of 0.4 for cross-camera matching and 0.85 to avoid over-matching within the same video.
 
 ## Output
 - **Temporary Chunks**: Saved in `output/temp/camX/chunk_Y.mp4` (e.g., `output/temp/cam1/chunk_0.mp4`).
@@ -170,5 +186,8 @@ This project implements a multi-camera person tracking system that identifies an
 - **Memory Usage**: Processing multiple videos in parallel may require significant GPU memory.
 - **ReID Accuracy**: Matching accuracy across cameras depends on lighting, angles, and person appearance.
 
+## License
+This project is licensed under the MIT License. See the `LICENSE` file for details (if applicable).
+
 ## Contact
-For questions or contributions, please reach out to [atulsah9211@gmail.com].
+For questions or contributions, please reach out to [your-email@example.com].
