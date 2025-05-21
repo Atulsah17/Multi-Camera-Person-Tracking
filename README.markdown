@@ -186,12 +186,8 @@ This Multi-Camera Person Tracking project uses YOLOv8 for detection, ByteTrack f
 - **Memory Usage**: Processing multiple videos in parallel may require significant GPU memory.
 - **ReID Accuracy**: Matching accuracy across cameras depends on lighting, angles, and person appearance.
 
-## License
-This project is licensed under the MIT License. See the `LICENSE` file for details (if applicable).
+
 
 ## Contact
-<<<<<<< HEAD
-For questions or contributions, please reach out to [your-email@example.com].
-=======
 For questions or contributions, please reach out to [atulsah9211@gmail.com].
->>>>>>> 84a951745404ee788f9126bc44bb24f2e756ddbb
+
